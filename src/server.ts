@@ -38,6 +38,7 @@ export class MidlMcpServer {
      */
     private setupTools() {
         registerTools(this.server, this.midlWrapper);
+        registerActionableTools(this.server, this.midlWrapper);
     }
 
     /**

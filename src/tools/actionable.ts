@@ -1,7 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { transferBTC, broadcastTransaction, signPSBT, getDefaultAccount } from "@midl/core";
-import { Psbt, networks } from "bitcoinjs-lib";
 import { MidlConfigWrapper } from "../config/midl-config.js";
 
 /**
@@ -25,13 +24,10 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
         async ({ recipients, feeRate, from }) => {
             try {
                 const transfers = recipients.map(r => ({ receiver: r.address, amount: r.amount }));
-                // Using transferBTC with publish: false to just get the PSBT
-                // Note: transferBTC in current core might still try to sign if it has the connector.
-                // But our config wrapper ensures it's pre-connected.
                 const response = await transferBTC(config, {
                     transfers,
-                    feeRate,
-                    from,
+                    feeRate: feeRate ?? undefined,
+                    from: from ?? undefined,
                     publish: false
                 });
 
@@ -62,10 +58,8 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
         },
         async ({ psbt, address }, extra: any) => {
             try {
-                // 1. Show details to user via elicitation if supported
-                // In MCP v1.x, we use extra.sendRequest if available
                 if (extra?.sendRequest) {
-                    const confirmed = await extra.sendRequest({
+                    const confirmed: any = await extra.sendRequest({
                         method: "elicitation/create",
                         params: {
                             mode: "form",
@@ -87,15 +81,12 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
                         };
                     }
                 } else {
-                    // Fallback for clients without elicitation support
-                    // For now we'll require elicitation for safety, or implement a manual confirmation step
                     return {
                         content: [{ type: "text", text: "Error: Human elicitation required for signing but not supported by client." }],
                         isError: true
                     };
                 }
 
-                // 2. Perform signing if confirmed
                 const state = config.getState();
                 const account = address
                     ? state.accounts?.find(a => a.address === address)
@@ -105,11 +96,10 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
                     throw new Error("No account found for signing.");
                 }
 
-                // In MIDL.js core, signPSBT typically happens via connection
                 const signedRes = await signPSBT(config, {
                     psbt,
                     signInputs: {
-                        [account.address]: [0] // Correctly identifying inputs requires more logic, for now assuming first input
+                        [account.address]: [0]
                     },
                     publish: false
                 });
@@ -141,7 +131,7 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
         async ({ txHex }, extra: any) => {
             try {
                 if (extra?.sendRequest) {
-                    const confirmed = await extra.sendRequest({
+                    const confirmed: any = await extra.sendRequest({
                         method: "elicitation/create",
                         params: {
                             mode: "form",
