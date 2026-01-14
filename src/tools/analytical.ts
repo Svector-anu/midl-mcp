@@ -77,13 +77,13 @@ export function registerTools(server: McpServer, midl: MidlConfigWrapper) {
                 const data = {
                     txId: psbt.extractTransaction().getId(),
                     locktime: psbt.locktime,
-                    inputs: psbt.txInputs.map((input, i) => ({
+                    inputs: psbt.txInputs.map((input: any, i: number) => ({
                         index: i,
                         hash: input.hash.toString("hex"),
                         vout: input.index,
                         sequence: input.sequence,
                     })),
-                    outputs: psbt.txOutputs.map((output, i) => ({
+                    outputs: psbt.txOutputs.map((output: any, i: number) => ({
                         index: i,
                         address: output.address,
                         value: Number(output.value),
