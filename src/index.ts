@@ -1,31 +1,32 @@
 import { MidlMcpServer } from "./server.js";
 import { MidlConfigWrapper } from "./config/midl-config.js";
+import { createMidlConfigFromEnv } from "./config/factory.js";
 
 /**
  * Main entry point for the MIDL MCP server.
- * 
- * In a real-world scenario, the pre-connected 'config' would be loaded 
- * from a secure storage or passed during initialization.
- * 
- * For this implementation, we assume the user provides the configuration context.
  */
 async function main() {
     try {
-        // Note: This is where the externally established config would be provided.
-        // For local development/demo, this would be initialized with a mock or specific connector.
         console.error("Starting MIDL MCP Server...");
 
-        // Placeholder: Initialize with a dummy config that passes validation for demonstration 
-        // in a real environment, this object would come from @midl/core's createConfig and connect.
-        const mockConfig: any = {
-            getState: () => ({
-                connection: {},
-                network: { network: "testnet" },
-                accounts: [{ address: "tb1qtestaddress" }]
-            })
-        };
+        // Attempt to load real config from environment
+        let midlConfig = await createMidlConfigFromEnv();
 
-        const midlWrapper = new MidlConfigWrapper(mockConfig);
+        if (!midlConfig) {
+            console.error("Using MOCK/DEMO mode (MIDL_ACCOUNT_ADDRESS not found)");
+            // Fallback to mock for demonstration/testing
+            midlConfig = {
+                getState: () => ({
+                    connection: {},
+                    network: { network: "testnet", id: "testnet" },
+                    accounts: [{ address: "tb1qtestaddress" }]
+                })
+            } as any;
+        } else {
+            console.error("Real Wallet context established for:", midlConfig.getState().accounts?.[0].address);
+        }
+
+        const midlWrapper = new MidlConfigWrapper(midlConfig);
         const server = new MidlMcpServer(midlWrapper);
 
         await server.runStdio();
