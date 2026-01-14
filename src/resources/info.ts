@@ -82,7 +82,8 @@ export function registerExtraResources(server: McpServer, midl: MidlConfigWrappe
             title: "Rune Information",
             description: "Get metadata for a specific Rune",
         },
-        async (uri, { runeId }) => {
+        async (uri) => {
+            const runeId = uri.pathname.replace(/^\//, "");
             const rune = await getRune(config, runeId);
             return {
                 contents: [
@@ -104,7 +105,10 @@ export function registerExtraResources(server: McpServer, midl: MidlConfigWrappe
             title: "Rune Balance",
             description: "Get the balance of a specific Rune for an address",
         },
-        async (uri, { address, runeId }) => {
+        async (uri) => {
+            const parts = uri.pathname.replace(/^\//, "").split("/");
+            const address = parts[0];
+            const runeId = parts[1];
             const balance = await getRuneBalance(config, { address, runeId });
             return {
                 contents: [
