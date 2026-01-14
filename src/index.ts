@@ -15,18 +15,20 @@ async function main() {
         if (!midlConfig) {
             console.error("Using MOCK/DEMO mode (MIDL_ACCOUNT_ADDRESS not found)");
             // Fallback to mock for demonstration/testing
-            midlConfig = {
+            const mock: any = {
                 getState: () => ({
                     connection: {},
                     network: { network: "testnet", id: "testnet" },
                     accounts: [{ address: "tb1qtestaddress" }]
                 })
-            } as any;
+            };
+            midlConfig = mock;
         } else {
-            console.error("Real Wallet context established for:", midlConfig.getState().accounts?.[0].address);
+            const address = midlConfig.getState().accounts?.[0]?.address;
+            console.error("Real Wallet context established for:", address);
         }
 
-        const midlWrapper = new MidlConfigWrapper(midlConfig);
+        const midlWrapper = new MidlConfigWrapper(midlConfig as any);
         const server = new MidlMcpServer(midlWrapper);
 
         await server.runStdio();
