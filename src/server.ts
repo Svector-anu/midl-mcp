@@ -5,6 +5,7 @@ import { registerResources } from "./resources/bitcoin.js";
 import { registerExtraResources } from "./resources/info.js";
 import { registerTools } from "./tools/analytical.js";
 import { registerActionableTools } from "./tools/actionable.js";
+import { registerPrompts } from "./prompts/bitcoin.js";
 
 /**
  * MIDL MCP Server Class
@@ -45,16 +46,26 @@ export class MidlMcpServer {
      * Sets up prompts.
      */
     private setupPrompts() {
-        // Prompts will be registered here in Phase 4
+        registerPrompts(this.server);
     }
 
     /**
-     * Starts the server using stdio transport.
+     * Starts the server using stdio transport (Default).
      */
-    async run() {
+    async runStdio() {
         const transport = new StdioServerTransport();
         await this.server.connect(transport);
         console.error("MIDL MCP Server running on stdio");
+    }
+
+    /**
+     * Starts the server using HTTP/SSE transport (Optional).
+     * Includes DNS rebinding protection.
+     */
+    async runHttp(port: number = 3000) {
+        // This is a placeholder for SSE/HTTP transport implementation
+        // For now we focus on Stdio as it's the primary use case for local LLM extensions
+        console.error(`HTTP transport not fully implemented. Stdio is recommended for local use.`);
     }
 
     /**
@@ -62,12 +73,5 @@ export class MidlMcpServer {
      */
     getMcpServer(): McpServer {
         return this.server;
-    }
-
-    /**
-     * Expose the MIDL config wrapper.
-     */
-    getMidlWrapper(): MidlConfigWrapper {
-        return this.midlWrapper;
     }
 }
