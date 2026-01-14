@@ -44,7 +44,7 @@ pnpm install
 
 ## 🤖 Integration with Claude Desktop
 
-To use this server in Claude Desktop, add the following to your `claude_desktop_config.json`:
+To use this server in Claude Desktop, add it to your `claude_desktop_config.json`:
 
 **MacOS**: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
 
@@ -57,14 +57,28 @@ To use this server in Claude Desktop, add the following to your `claude_desktop_
         "-y",
         "tsx",
         "/Users/YOUR_USERNAME/Desktop/opensource/midl-mcp/src/index.ts"
-      ]
+      ],
+      "env": {
+        "MIDL_NETWORK": "testnet",
+        "MIDL_ACCOUNT_ADDRESS": "YOUR_BTC_TESTNET_ADDRESS",
+        "MIDL_ACCOUNT_PUBKEY": "YOUR_BTC_PUBLIC_KEY",
+        "MIDL_RPC_URL": "https://mempool.space/testnet"
+      }
     }
   }
 }
 ```
 
+### Configuration Variables
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `MIDL_NETWORK` | Bitcoin network (testnet, regtest) | `testnet` |
+| `MIDL_ACCOUNT_ADDRESS` | Your public Bitcoin address | `tb1q...` |
+| `MIDL_ACCOUNT_PUBKEY` | Your public key (32 bytes hex) | `8f2a...` |
+| `MIDL_RPC_URL` | Optional custom Mempool.space API | `https://mempool.space/testnet` |
+
 > [!IMPORTANT]
-> Replace `/Users/YOUR_USERNAME/Desktop/opensource/midl-mcp/src/index.ts` with the absolute path to your local `index.ts`.
+> Replace the paths and values with your real local setup. The `env` section is required for the server to retrieve real wallet data. If `MIDL_ACCOUNT_ADDRESS` is missing, the server falls back to mock data.
 
 ## 🧪 Testing
 
