@@ -1,0 +1,67 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { MidlConfigWrapper } from "./config/midl-config.js";
+
+/**
+ * MIDL MCP Server Class
+ */
+export class MidlMcpServer {
+    private server: McpServer;
+    private midlWrapper: MidlConfigWrapper;
+
+    constructor(midlWrapper: MidlConfigWrapper) {
+        this.midlWrapper = midlWrapper;
+        this.server = new McpServer({
+            name: "midl-mcp-server",
+            version: "1.0.0",
+        });
+
+        this.setupResources();
+        this.setupTools();
+        this.setupPrompts();
+    }
+
+    /**
+     * Sets up read-only resources.
+     */
+    private setupResources() {
+        // Resources will be registered here in Phase 1
+    }
+
+    /**
+     * Sets up analytical and actionable tools.
+     */
+    private setupTools() {
+        // Tools will be registered here in Phase 2 & 3
+    }
+
+    /**
+     * Sets up prompts.
+     */
+    private setupPrompts() {
+        // Prompts will be registered here in Phase 4
+    }
+
+    /**
+     * Starts the server using stdio transport.
+     */
+    async run() {
+        const transport = new StdioServerTransport();
+        await this.server.connect(transport);
+        console.error("MIDL MCP Server running on stdio");
+    }
+
+    /**
+     * Expose the underlying McpServer for registration.
+     */
+    getMcpServer(): McpServer {
+        return this.server;
+    }
+
+    /**
+     * Expose the MIDL config wrapper.
+     */
+    getMidlWrapper(): MidlConfigWrapper {
+        return this.midlWrapper;
+    }
+}
