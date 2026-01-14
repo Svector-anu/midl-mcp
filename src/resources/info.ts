@@ -109,6 +109,7 @@ export function registerExtraResources(server: McpServer, midl: MidlConfigWrappe
             const parts = uri.pathname.replace(/^\//, "").split("/");
             const address = parts[0];
             const runeId = parts[1];
+            if (!address || !runeId) throw new Error("Missing address or runeId");
             const balance = await getRuneBalance(config, { address, runeId });
             return {
                 contents: [

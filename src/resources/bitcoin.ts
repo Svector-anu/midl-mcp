@@ -17,7 +17,9 @@ export function registerResources(server: McpServer, midl: MidlConfigWrapper) {
             title: "Bitcoin Balance",
             description: "Get the current BTC balance of an address",
         },
-        async (uri, { address }) => {
+        async (uri) => {
+            const address = uri.pathname.split("/").pop();
+            if (!address) throw new Error("Missing address");
             const balanceSats = await getBalance(config, address);
             return {
                 contents: [
@@ -39,7 +41,9 @@ export function registerResources(server: McpServer, midl: MidlConfigWrapper) {
             title: "Bitcoin UTXOs",
             description: "Get the list of UTXOs for an address",
         },
-        async (uri, { address }) => {
+        async (uri) => {
+            const address = uri.pathname.split("/").pop();
+            if (!address) throw new Error("Missing address");
             const utxos = await getUTXOs(config, address);
             return {
                 contents: [
