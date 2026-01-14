@@ -1,6 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { MidlConfigWrapper } from "./config/midl-config.js";
+import { registerResources } from "./resources/bitcoin.js";
+import { registerExtraResources } from "./resources/info.js";
 
 /**
  * MIDL MCP Server Class
@@ -25,7 +27,8 @@ export class MidlMcpServer {
      * Sets up read-only resources.
      */
     private setupResources() {
-        // Resources will be registered here in Phase 1
+        registerResources(this.server, this.midlWrapper);
+        registerExtraResources(this.server, this.midlWrapper);
     }
 
     /**
