@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { MidlConfigWrapper } from "./config/midl-config.js";
 import { registerResources } from "./resources/bitcoin.js";
 import { registerExtraResources } from "./resources/info.js";
+import { registerTools } from "./tools/analytical.js";
 
 /**
  * MIDL MCP Server Class
@@ -35,7 +36,7 @@ export class MidlMcpServer {
      * Sets up analytical and actionable tools.
      */
     private setupTools() {
-        // Tools will be registered here in Phase 2 & 3
+        registerTools(this.server, this.midlWrapper);
     }
 
     /**
