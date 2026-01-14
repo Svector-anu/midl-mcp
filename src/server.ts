@@ -4,6 +4,7 @@ import { MidlConfigWrapper } from "./config/midl-config.js";
 import { registerResources } from "./resources/bitcoin.js";
 import { registerExtraResources } from "./resources/info.js";
 import { registerTools } from "./tools/analytical.js";
+import { registerActionableTools } from "./tools/actionable.js";
 
 /**
  * MIDL MCP Server Class
