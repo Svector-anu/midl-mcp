@@ -2,7 +2,7 @@
 
 A production-ready Model Context Protocol (MCP) server for the [MIDL.js](https://js.midl.xyz) ecosystem. Enables LLMs to interact with Bitcoin and the MIDL Protocol in a safe, inspectable, and AI-native way.
 
-## 🚀 Overview
+##  Overview
 
 The MIDL MCP server provides a bridge between LLMs (like Claude) and the Bitcoin network. It follows strict design principles to ensure Bitcoin safety:
 - **No Private Keys**: LLMs never hold or access private keys.
@@ -10,7 +10,7 @@ The MIDL MCP server provides a bridge between LLMs (like Claude) and the Bitcoin
 - **Safety First**: Defaults to Testnet/Regtest and requires a pre-connected wallet model.
 - **Transparency**: All transactions are human-readable and decodable before execution.
 
-## ✨ Features
+##  Features
 
 ### Resources (Read-Only)
 - `midl://balance/{address}`: Current BTC balance.
@@ -34,7 +34,7 @@ The MIDL MCP server provides a bridge between LLMs (like Claude) and the Bitcoin
 - `explain-transaction`: Ask the LLM to explain a transaction in plain English.
 - `debug-transaction`: Seek help from the LLM to debug a transaction error.
 
-## 🛠 Installation
+##  Installation
 
 ```bash
 git clone https://github.com/svector-anu/midl-mcp.git
@@ -42,7 +42,7 @@ cd midl-mcp
 pnpm install
 ```
 
-## 🤖 Integration with Claude Desktop
+##  Integration with Claude Desktop
 
 To use this server in Claude Desktop, add it to your `claude_desktop_config.json`:
 
@@ -80,13 +80,13 @@ To use this server in Claude Desktop, add it to your `claude_desktop_config.json
 > [!IMPORTANT]
 > Replace the paths and values with your real local setup. The `env` section is required for the server to retrieve real wallet data. If `MIDL_ACCOUNT_ADDRESS` is missing, the server falls back to mock data.
 
-## 🧪 Testing
+##  Testing
 
 ```bash
 pnpm test
 ```
 
-## 🛡 Security Architecture
+##  Security Architecture
 
 The server enforces a **Pre-connected wallet configuration model**. This means the server instance is initialized with a read-only execution context where the wallet connection is established externally. This prevents the MCP server from having the capability to initiate sessions or manage sensitive keys.
 
