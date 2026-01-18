@@ -6,6 +6,7 @@ A production-ready Model Context Protocol (MCP) server for the [MIDL.js](https:/
 
 The MIDL MCP server provides a bridge between LLMs (like Claude) and the Bitcoin network. It follows strict design principles to ensure Bitcoin safety:
 - **No Private Keys**: LLMs never hold or access private keys.
+- **No-Hex Deployment**: Deploy raw Solidity code directly; the server handles compilation and dependencies (including OpenZeppelin).
 - **Human-in-the-Loop**: All signing and broadcasting actions require explicit human confirmation via MCP elicitation.
 - **Safety First**: Defaults to Testnet/Regtest and requires a pre-connected wallet model.
 - **Transparency**: All transactions are human-readable and decodable before execution.

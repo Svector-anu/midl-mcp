@@ -308,10 +308,10 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
     // Tool: deploy-contract-source
     server.tool(
         "deploy-contract-source",
-        "Compile Solidity source code and prepare a Bitcoin PSBT for deployment in one step",
+        "Compile Solidity source code and prepare a Bitcoin PSBT for deployment. AUTOMATICALLY resolves @openzeppelin/contracts imports from GitHub. No local node_modules required.",
         {
             sourceCode: z.string().describe("The Solidity source code"),
-            contractName: z.string().describe("The name of the contract to deploy (required if multiple contracts in file)"),
+            contractName: z.string().optional().describe("The name of the contract to deploy. If omitted, the last contract defined in the code is used."),
             args: z.array(z.any()).optional().describe("Constructor arguments"),
             feeRate: z.number().int().optional().describe("Bitcoin fee rate in sat/vB."),
         },
@@ -375,18 +375,28 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
 
                 // Find the specific contract in the output
                 let contractArtifact: any = null;
+                let targetName = contractName;
+
+                if (!targetName) {
+                    // Default to the last contract defined in the sources (heuristic for main contract)
+                    const fileContracts = Object.values(output.contracts)[0];
+                    if (fileContracts) {
+                        const names = Object.keys(fileContracts);
+                        targetName = names[names.length - 1];
+                    }
+                }
+
                 for (const fileName in output.contracts) {
-                    if (output.contracts[fileName][contractName]) {
-                        contractArtifact = output.contracts[fileName][contractName];
+                    if (output.contracts[fileName][targetName!]) {
+                        contractArtifact = output.contracts[fileName][targetName!];
                         break;
                     }
                 }
 
                 if (!contractArtifact) {
-                    // Fallback to the first contract if only one is present or if name not found
                     const allContracts = Object.values(output.contracts).flatMap(f => Object.keys(f as any));
                     return {
-                        content: [{ type: "text", text: `Contract "${contractName}" not found in compilation output. Available contracts: ${allContracts.join(", ")}` }],
+                        content: [{ type: "text", text: `Contract "${targetName || contractName}" not found. Available: ${allContracts.join(", ")}` }],
                         isError: true
                     };
                 }

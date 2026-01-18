@@ -1,6 +1,27 @@
-# Deploy and Interact with Contracts via MIDL MCP
+## 🛠 Setup & Requirements
 
-This guide explains how to deploy and interact with Solidity smart contracts on the MIDL network using the Model Context Protocol (MCP) server.
+To use these tools effectively in Claude Desktop, you must ensure your environment is configured correctly.
+
+### 1. Environment Variables
+The server needs to know your Bitcoin identity. Add these to your `claude_desktop_config.json`:
+
+```json
+"env": {
+  "MIDL_NETWORK": "regtest",
+  "MIDL_ACCOUNT_ADDRESS": "bcrt1q...", 
+  "MIDL_ACCOUNT_PUBKEY": "03...",
+  "MIDL_RPC_URL": "https://mempool.regtest.midl.xyz"
+}
+```
+
+### 2. Force Restart Claude
+Whenever the MCP server code is updated, you **MUST** fully quit Claude (Cmd+Q) and restart it. Claude only discovery tools on startup.
+
+### 3. Troubleshooting "Hallucinations"
+If Claude says it "can't access OpenZeppelin" or "needs a wallet", remind it: 
+> *"Use the 'deploy-contract-source' tool. It handles dependencies and anchoring automatically.*"
+
+---
 
 ## 🚀 Overview
 
