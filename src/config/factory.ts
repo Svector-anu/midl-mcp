@@ -7,11 +7,33 @@ import { ServerConnector } from "./connector.js";
 export async function createMidlConfigFromEnv() {
     const networkId = (process.env.MIDL_NETWORK || "testnet") as any;
     const address = process.env.MIDL_ACCOUNT_ADDRESS;
-    const publicKey = process.env.MIDL_ACCOUNT_PUBKEY || ""; // Empty pubkey allows read-only balance but limits signing
+    let publicKey = process.env.MIDL_ACCOUNT_PUBKEY || "";
 
     if (!address) {
         console.warn("MIDL_ACCOUNT_ADDRESS not set. Server will start in demo/mock mode.");
         return null;
+    }
+
+    // Auto-recover public key if missing and has on-chain history
+    if (!publicKey || publicKey === "NOT_SET" || publicKey.includes("...")) {
+        try {
+            console.error(`Attempting to recover public key for ${address}...`);
+            const baseUrl = networkId === "regtest" ? "https://mempool.regtest.midl.xyz" : `https://mempool.space/${networkId === "mainnet" ? "" : networkId + "/"}`;
+            const res = await fetch(`${baseUrl}/api/address/${address}/txs`);
+            if (res.ok) {
+                const txs = await res.json() as any[];
+                for (const tx of txs) {
+                    const vin = tx.vin.find((v: any) => v.prevout?.scriptpubkey_address === address);
+                    if (vin && vin.witness && vin.witness.length >= 2) {
+                        publicKey = vin.witness[vin.witness.length - 1];
+                        console.error(`Successfully recovered public key: ${publicKey}`);
+                        break;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Public key recovery failed:", e);
+        }
     }
 
     // Determine the base bitcoin network name used by midl-js
