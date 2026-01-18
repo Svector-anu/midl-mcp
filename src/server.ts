@@ -17,8 +17,8 @@ export class MidlMcpServer {
     constructor(midlWrapper: MidlConfigWrapper) {
         this.midlWrapper = midlWrapper;
         this.server = new McpServer({
-            name: "midl-mcp-server",
-            version: "1.0.0",
+            name: "midl-bitcoin-mcp",
+            version: "1.1.0",
         });
 
         this.setupResources();
@@ -55,7 +55,7 @@ export class MidlMcpServer {
     async runStdio() {
         const transport = new StdioServerTransport();
         await this.server.connect(transport);
-        console.error("MIDL MCP Server running on stdio");
+        console.error("MIDL Bitcoin MCP Server running on stdio");
     }
 
     /**
@@ -63,8 +63,6 @@ export class MidlMcpServer {
      * Includes DNS rebinding protection.
      */
     async runHttp(port: number = 3000) {
-        // This is a placeholder for SSE/HTTP transport implementation
-        // For now we focus on Stdio as it's the primary use case for local LLM extensions
         console.error(`HTTP transport not fully implemented. Stdio is recommended for local use.`);
     }
 
