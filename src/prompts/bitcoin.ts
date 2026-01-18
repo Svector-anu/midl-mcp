@@ -43,4 +43,23 @@ export function registerPrompts(server: McpServer) {
             ],
         })
     );
+
+    // Prompt: deploy-from-source
+    server.prompt(
+        "deploy-from-source",
+        {
+            code: z.string().describe("The Solidity source code to deploy"),
+        },
+        (args) => ({
+            messages: [
+                {
+                    role: "user",
+                    content: {
+                        type: "text",
+                        text: `I want to deploy this Solidity contract to MIDL: \n\n${args.code}\n\nPlease use the 'deploy-contract-source' tool to compile it and prepare the anchoring transaction. Suggest a suitable contract name and constructor arguments if applicable.`,
+                    },
+                },
+            ],
+        })
+    );
 }
