@@ -1,6 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { transferBTC, broadcastTransaction, signPSBT, getDefaultAccount } from "@midl/core";
+import { addTxIntention, finalizeBTCTransaction, getEVMFromBitcoinNetwork, getEVMAddress } from "@midl/executor";
+import { createPublicClient, http, encodeDeployData, getContractAddress, encodeFunctionData } from "viem";
 import { MidlConfigWrapper } from "../config/midl-config.js";
 
 /**
@@ -29,7 +31,7 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
                     feeRate: feeRate ?? undefined,
                     from: from ?? undefined,
                     publish: false
-                });
+                } as any); // Cast to any to bypass strict feeRate nullability for now if needed, or fix the type in core
 
                 return {
                     content: [
@@ -160,18 +162,142 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
                 }
 
                 const txId = await broadcastTransaction(config, txHex);
+                const explorerUrl = config.getState().network.explorerUrl;
 
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Transaction broadcasted successfully!\n\nTransaction ID: ${txId}\nView on mempool.space (testnet): https://mempool.space/testnet/tx/${txId}`,
+                            text: `Transaction broadcasted successfully!\n\nTransaction ID: ${txId}\nView on Explorer: ${explorerUrl}${txId}`,
                         },
                     ],
                 };
             } catch (error: any) {
                 return {
                     content: [{ type: "text", text: `Error broadcasting transaction: ${error.message}` }],
+                    isError: true,
+                };
+            }
+        }
+    );
+
+    // Tool: prepare-contract-deploy
+    server.tool(
+        "prepare-contract-deploy",
+        "Prepare a Bitcoin PSBT to anchor an EVM contract deployment on MIDL-L2",
+        {
+            bytecode: z.string().describe("The compiled Solidity contract bytecode (hex)"),
+            args: z.array(z.any()).optional().describe("Constructor arguments"),
+            abi: z.array(z.any()).optional().describe("Contract ABI (required if args are provided)"),
+            feeRate: z.number().int().optional().describe("Bitcoin fee rate in sat/vB."),
+        },
+        async ({ bytecode, args, abi, feeRate }) => {
+            try {
+                const { network } = config.getState();
+                const evmChain = getEVMFromBitcoinNetwork(network as any);
+                const publicClient = createPublicClient({
+                    chain: evmChain as any,
+                    transport: http()
+                });
+
+                let data = bytecode as `0x${string}`;
+                if (!data.startsWith("0x")) data = `0x${data}` as any;
+
+                if (args && args.length > 0) {
+                    if (!abi) throw new Error("ABI is required when constructor arguments are provided.");
+                    data = encodeDeployData({
+                        abi,
+                        args,
+                        bytecode: data
+                    });
+                }
+
+                const intention = await addTxIntention(config, {
+                    evmTransaction: {
+                        type: "btc",
+                        data,
+                    }
+                } as any);
+
+                const btcTx = await finalizeBTCTransaction(config, [intention], publicClient as any, {
+                    ...(feeRate ? { feeRate } : {})
+                });
+
+                const evmAddress = getEVMAddress(getDefaultAccount(config) as any, network as any);
+                const nonce = await publicClient.getTransactionCount({ address: evmAddress as `0x${string}` });
+                const predictedAddress = getContractAddress({
+                    from: evmAddress as `0x${string}`,
+                    nonce: BigInt(nonce)
+                });
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Contract deployment PSBT prepared successfully.\n\nPredicted Contract Address: ${predictedAddress}\nDeployer EVM Address: ${evmAddress}\n\nPSBT (Base64):\n${btcTx.psbt}\n\nThis transaction anchors a contract deployment on the MIDL EVM chain (${network.id}).\nPlease use 'request-psbt-signature' and then 'request-transaction-broadcast' to complete the deployment.`,
+                        },
+                    ],
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error preparing contract deployment: ${error.message}` }],
+                    isError: true,
+                };
+            }
+        }
+    );
+
+    // Tool: prepare-contract-call
+    server.tool(
+        "prepare-contract-call",
+        "Prepare a Bitcoin PSBT to anchor a contract function call on MIDL-L2",
+        {
+            contractAddress: z.string().describe("The EVM contract address (0x...)"),
+            abi: z.array(z.any()).describe("The contract ABI"),
+            functionName: z.string().describe("The function name to call"),
+            args: z.array(z.any()).optional().describe("Function arguments"),
+            value: z.number().int().optional().describe("Optional BTC value to send (satoshis)"),
+            feeRate: z.number().int().optional().describe("Bitcoin fee rate in sat/vB."),
+        },
+        async ({ contractAddress, abi, functionName, args, value, feeRate }) => {
+            try {
+                const { network } = config.getState();
+                const evmChain = getEVMFromBitcoinNetwork(network as any);
+                const publicClient = createPublicClient({
+                    chain: evmChain as any,
+                    transport: http()
+                });
+
+                const data = encodeFunctionData({
+                    abi,
+                    functionName,
+                    args: args ?? []
+                });
+
+                const intention = await addTxIntention(config, {
+                    evmTransaction: {
+                        type: "btc",
+                        to: contractAddress as `0x${string}`,
+                        data,
+                        value: value ? BigInt(value) : undefined
+                    }
+                } as any);
+
+                const btcTx = await finalizeBTCTransaction(config, [intention], publicClient as any, {
+                    ...(feeRate ? { feeRate } : {})
+                });
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Contract call PSBT prepared successfully.\n\nContract: ${contractAddress}\nFunction: ${functionName}\n\nPSBT (Base64):\n${btcTx.psbt}\n\nThis transaction anchors a contract call on the MIDL EVM chain (${network.id}).\nPlease use 'request-psbt-signature' and then 'request-transaction-broadcast' to complete the call.`,
+                        },
+                    ],
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error preparing contract call: ${error.message}` }],
                     isError: true,
                 };
             }

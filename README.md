@@ -27,8 +27,12 @@ The MIDL MCP server provides a bridge between LLMs (like Claude) and the Bitcoin
 - `decode-psbt`: Convert base64 PSBTs into human-readable data.
 - `validate-bitcoin-address`: Check address validity for the current network.
 - `prepare-btc-transfer`: Prepare an unsigned PSBT (Safe, no action).
+- `prepare-contract-deploy`: Prepare a PSBT to anchor an EVM contract deployment.
+- `prepare-contract-call`: Prepare a PSBT to anchor a contract function call.
 - `request-psbt-signature`: Request a human signature for a PSBT (Gated).
 - `request-transaction-broadcast`: Request human confirmation to broadcast (Gated).
+
+See [DEPLOY_AND_INTERACT.md](./DEPLOY_AND_INTERACT.md) for a detailed walkthrough on smart contract operations.
 
 ### Prompts
 - `explain-transaction`: Ask the LLM to explain a transaction in plain English.

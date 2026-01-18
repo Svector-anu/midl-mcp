@@ -14,12 +14,26 @@ export async function createMidlConfigFromEnv() {
         return null;
     }
 
-    // Define network configuration
+    // Determine the base bitcoin network name used by midl-js
+    let bitcoinNetwork: "bitcoin" | "testnet" | "regtest" = "testnet";
+    if (networkId === "mainnet") bitcoinNetwork = "bitcoin";
+    else if (networkId === "regtest") bitcoinNetwork = "regtest";
+
+    // Determine the explorer URL
+    let explorerUrl = `https://mempool.space/${networkId === "mainnet" ? "" : networkId + "/"}tx/`;
+    if (networkId === "regtest") {
+        explorerUrl = "https://mempool.regtest.midl.xyz/tx/";
+    } else if (networkId === "testnet4") {
+        explorerUrl = "https://mempool.space/testnet4/tx/";
+    } else if (networkId === "signet") {
+        explorerUrl = "https://mempool.space/signet/tx/";
+    }
+
     const networks: any[] = [
         {
             id: networkId,
-            network: networkId === "mainnet" ? "bitcoin" : "testnet",
-            explorerUrl: `https://mempool.space/${networkId === "mainnet" ? "" : networkId + "/"}tx/`
+            network: bitcoinNetwork,
+            explorerUrl
         }
     ];
 
@@ -38,7 +52,7 @@ export async function createMidlConfigFromEnv() {
         } as any],
         provider: new MempoolSpaceProvider(rpcMap as any),
         runesProvider: new MaestroSymphonyProvider(),
-        defaultPurpose: AddressPurpose.ORDINAL
+        defaultPurpose: AddressPurpose.Ordinals
     });
 
     // Manually "connect" the store state so resources can find the account
@@ -48,13 +62,13 @@ export async function createMidlConfigFromEnv() {
             {
                 address,
                 publicKey,
-                purpose: AddressPurpose.ORDINAL,
+                purpose: AddressPurpose.Ordinals,
                 addressType: "p2tr" as any
             },
             {
                 address,
                 publicKey,
-                purpose: AddressPurpose.PAYMENT,
+                purpose: AddressPurpose.Payment,
                 addressType: "p2tr" as any
             }
         ]
