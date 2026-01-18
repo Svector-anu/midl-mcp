@@ -15,11 +15,22 @@ With the MIDL MCP server, you can:
 
 ## 🏗 Part 1: Deploying a Contract
 
-### 1. Preparation
-Ensure you have the compiled contract **bytecode** and the **ABI**.
+### 1. Simple Deployment (Source Code)
+The easiest way is to provide your Solidity code directly. The MCP server will compile it and resolve dependencies (like OpenZeppelin).
 
-### 2. Prepare Deployment
-Ask the LLM to prepare the deployment.
+**Prompt:** `"Deploy this Solidity contract: [PASTE_CODE]"`
+
+The LLM will automatically:
+- Fetch external dependencies (e.g., `@openzeppelin/contracts` via GitHub).
+- Compile the code.
+- Prepare the anchoring Bitcoin PSBT.
+- Provide the **Predicted Contract Address**.
+
+---
+
+### 2. Manual Deployment (Bytecode)
+If you already have the compiled bytecode and ABI:
+
 **Prompt:** `"Deploy this contract with bytecode <BYTECODE> and constructor arguments <ARGS>"`
 
 The LLM will call the `prepare-contract-deploy` tool and return:

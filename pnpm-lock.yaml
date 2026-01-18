@@ -29,6 +29,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      solc:
+        specifier: 0.8.28
+        version: 0.8.28
       zod:
         specifier: ^4.3.5
         version: 4.3.5
@@ -1804,6 +1807,11 @@ packages:
 
   solc@0.8.26:
     resolution: {integrity: sha512-yiPQNVf5rBFHwN6SIf3TUUvVAFKcQqmSUFeq+fb6pNRCo0ZCgpYOZDi3BVoezCPIAcKrVYd/qXlBLUP9wVrZ9g==}
+    engines: {node: '>=10.0.0'}
+    hasBin: true
+
+  solc@0.8.28:
+    resolution: {integrity: sha512-AFCiJ+b4RosyyNhnfdVH4ZR1+TxiL91iluPjw0EJslIu4LXGM9NYqi2z5y8TqochC4tcH9QsHfwWhOIC9jPDKA==}
     engines: {node: '>=10.0.0'}
     hasBin: true
 
@@ -4139,6 +4147,18 @@ snapshots:
   siginfo@2.0.0: {}
 
   solc@0.8.26(debug@4.4.3):
+    dependencies:
+      command-exists: 1.2.9
+      commander: 8.3.0
+      follow-redirects: 1.15.11(debug@4.4.3)
+      js-sha3: 0.8.0
+      memorystream: 0.3.1
+      semver: 5.7.2
+      tmp: 0.0.33
+    transitivePeerDependencies:
+      - debug
+
+  solc@0.8.28:
     dependencies:
       command-exists: 1.2.9
       commander: 8.3.0

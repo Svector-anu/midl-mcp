@@ -3,6 +3,7 @@ import { z } from "zod";
 import { transferBTC, broadcastTransaction, signPSBT, getDefaultAccount } from "@midl/core";
 import { addTxIntention, finalizeBTCTransaction, getEVMFromBitcoinNetwork, getEVMAddress } from "@midl/executor";
 import { createPublicClient, http, encodeDeployData, getContractAddress, encodeFunctionData } from "viem";
+import solc from "solc";
 import { MidlConfigWrapper } from "../config/midl-config.js";
 
 /**
@@ -298,6 +299,148 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
             } catch (error: any) {
                 return {
                     content: [{ type: "text", text: `Error preparing contract call: ${error.message}` }],
+                    isError: true,
+                };
+            }
+        }
+    );
+
+    // Tool: deploy-contract-source
+    server.tool(
+        "deploy-contract-source",
+        "Compile Solidity source code and prepare a Bitcoin PSBT for deployment in one step",
+        {
+            sourceCode: z.string().describe("The Solidity source code"),
+            contractName: z.string().describe("The name of the contract to deploy (required if multiple contracts in file)"),
+            args: z.array(z.any()).optional().describe("Constructor arguments"),
+            feeRate: z.number().int().optional().describe("Bitcoin fee rate in sat/vB."),
+        },
+        async ({ sourceCode, contractName, args, feeRate }) => {
+            try {
+                // 1. Resolve Imports (Simple version, mainly for OpenZeppelin)
+                const sources: Record<string, { content: string }> = {
+                    "Contract.sol": { content: sourceCode }
+                };
+
+                const resolveImports = async (content: string) => {
+                    const importRegex = /import\s+["']([^"']+)["']/g;
+                    let match;
+                    while ((match = importRegex.exec(content)) !== null) {
+                        const importPath = match[1];
+                        if (importPath && !sources[importPath]) {
+                            let url = "";
+                            if (importPath.startsWith("@openzeppelin/")) {
+                                url = `https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/master/${importPath.replace("@openzeppelin/", "")}`;
+                            } else {
+                                // Fallback or handle relative imports here if needed
+                                continue;
+                            }
+
+                            const res = await fetch(url);
+                            if (res.ok) {
+                                const importedSource = await res.text();
+                                sources[importPath] = { content: importedSource };
+                                await resolveImports(importedSource);
+                            }
+                        }
+                    }
+                };
+
+                await resolveImports(sourceCode);
+
+                // 2. Compile
+                const input = {
+                    language: 'Solidity',
+                    sources,
+                    settings: {
+                        outputSelection: {
+                            '*': {
+                                '*': ['abi', 'evm.bytecode']
+                            }
+                        }
+                    }
+                };
+
+                const output = JSON.parse(solc.compile(JSON.stringify(input)));
+
+                if (output.errors) {
+                    const errors = output.errors.filter((e: any) => e.severity === 'error');
+                    if (errors.length > 0) {
+                        return {
+                            content: [{ type: "text", text: `Compilation Error: ${errors[0].formattedMessage}` }],
+                            isError: true
+                        };
+                    }
+                }
+
+                // Find the specific contract in the output
+                let contractArtifact: any = null;
+                for (const fileName in output.contracts) {
+                    if (output.contracts[fileName][contractName]) {
+                        contractArtifact = output.contracts[fileName][contractName];
+                        break;
+                    }
+                }
+
+                if (!contractArtifact) {
+                    // Fallback to the first contract if only one is present or if name not found
+                    const allContracts = Object.values(output.contracts).flatMap(f => Object.keys(f as any));
+                    return {
+                        content: [{ type: "text", text: `Contract "${contractName}" not found in compilation output. Available contracts: ${allContracts.join(", ")}` }],
+                        isError: true
+                    };
+                }
+
+                const bytecode = contractArtifact.evm.bytecode.object;
+                const abi = contractArtifact.abi;
+
+                // 3. Prepare PSBT (Reuse logic from prepare-contract-deploy)
+                const { network } = config.getState();
+                const evmChain = getEVMFromBitcoinNetwork(network as any);
+                const publicClient = createPublicClient({
+                    chain: evmChain as any,
+                    transport: http()
+                });
+
+                let data = bytecode as `0x${string}`;
+                if (!data.startsWith("0x")) data = `0x${data}` as any;
+
+                data = encodeDeployData({
+                    abi,
+                    args: args ?? [],
+                    bytecode: data
+                });
+
+                const intention = await addTxIntention(config, {
+                    evmTransaction: {
+                        type: "btc",
+                        data,
+                    }
+                } as any);
+
+                const btcTx = await finalizeBTCTransaction(config, [intention], publicClient as any, {
+                    ...(feeRate ? { feeRate } : {})
+                });
+
+                const evmAddress = getEVMAddress(getDefaultAccount(config) as any, network as any);
+                const nonce = await publicClient.getTransactionCount({ address: evmAddress as `0x${string}` });
+                const predictedAddress = getContractAddress({
+                    from: evmAddress as `0x${string}`,
+                    nonce: BigInt(nonce)
+                });
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Contract compiled and PSBT prepared successfully.\n\nContract Name: ${contractName}\nPredicted Address: ${predictedAddress}\n\nPSBT (Base64):\n${btcTx.psbt}\n\nThis will deploy your Solidity source code to the MIDL chain. Please use 'request-psbt-signature' and 'request-transaction-broadcast' to complete the deployment.`,
+                        },
+                    ],
+                };
+
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error in deploy-contract-source: ${error.message}` }],
                     isError: true,
                 };
             }

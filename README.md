@@ -29,6 +29,7 @@ The MIDL MCP server provides a bridge between LLMs (like Claude) and the Bitcoin
 - `prepare-btc-transfer`: Prepare an unsigned PSBT (Safe, no action).
 - `prepare-contract-deploy`: Prepare a PSBT to anchor an EVM contract deployment.
 - `prepare-contract-call`: Prepare a PSBT to anchor a contract function call.
+- `deploy-contract-source`: Compile Solidity source code and prepare a deployment PSBT in one step (supports OpenZeppelin).
 - `request-psbt-signature`: Request a human signature for a PSBT (Gated).
 - `request-transaction-broadcast`: Request human confirmation to broadcast (Gated).
 
