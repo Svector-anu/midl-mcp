@@ -1,16 +1,52 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getFeeRate, getUTXOs, getDefaultAccount } from "@midl/core";
+import { getFeeRate, getUTXOs, getDefaultAccount, getBalance } from "@midl/core";
 import coinSelect from "bitcoinselect";
 import { Psbt, networks } from "bitcoinjs-lib";
 import { MidlConfigWrapper } from "../config/midl-config.js";
-import { satoshisToBtc } from "../utils/formatters.js";
+import { satoshisToBtc, formatBalance } from "../utils/formatters.js";
 
 /**
  * Registers analytical tools on the McpServer.
  */
 export function registerTools(server: McpServer, midl: MidlConfigWrapper) {
     const config = midl.getConfig();
+
+    // Tool: get-wallet-balance
+    server.tool(
+        "get-wallet-balance",
+        "Get the Bitcoin balance of an address (defaults to the connected account)",
+        {
+            address: z.string().optional().describe("Bitcoin address. If omitted, uses the connected account."),
+        },
+        async ({ address }) => {
+            const targetAddress = address || getDefaultAccount(config)?.address;
+
+            if (!targetAddress) {
+                return {
+                    content: [{ type: "text", text: "Error: No address provided and no account connected." }],
+                    isError: true,
+                };
+            }
+
+            try {
+                const balanceSats = await getBalance(config, targetAddress);
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Balance for ${targetAddress}: ${formatBalance(balanceSats)}`,
+                        },
+                    ],
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error fetching balance: ${error.message}` }],
+                    isError: true,
+                };
+            }
+        }
+    );
 
     // Tool: estimate-btc-transfer-fee
     server.tool(
