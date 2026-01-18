@@ -177,4 +177,77 @@ export function registerTools(server: McpServer, midl: MidlConfigWrapper) {
             }
         }
     );
+
+    // Tool: get-address-transactions
+    server.tool(
+        "get-address-transactions",
+        "Get the transaction history for a Bitcoin address",
+        {
+            address: z.string().describe("Bitcoin address"),
+            limit: z.number().int().optional().default(10).describe("Number of transactions to fetch (default 10)"),
+        },
+        async ({ address, limit }) => {
+            try {
+                const state = config.getState();
+                const network = state.network;
+                const rpcUrl = process.env.MIDL_RPC_URL || "https://mempool.regtest.midl.xyz";
+                const url = `${rpcUrl}/api/address/${address}/txs`;
+
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`Failed to fetch transactions: ${res.statusText}`);
+
+                const txs = (await res.json()).slice(0, limit);
+
+                const formattedTxs = txs.map((tx: any) => ({
+                    txid: tx.txid,
+                    version: tx.version,
+                    value: tx.vout.reduce((acc: number, v: any) => acc + v.value, 0),
+                    status: tx.status.confirmed ? "Confirmed" : "Unconfirmed",
+                    block_height: tx.status.block_height,
+                }));
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Recent Transactions for ${address}:\n\n` +
+                                formattedTxs.map((tx: any) => `- ID: ${tx.txid}\n  Value: ${satoshisToBtc(tx.value)} BTC\n  Status: ${tx.status} (Block ${tx.block_height || "N/A"})`).join("\n\n"),
+                        },
+                    ],
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error fetching transactions: ${error.message}` }],
+                    isError: true,
+                };
+            }
+        }
+    );
+
+    // Tool: get-blockchain-info
+    server.tool(
+        "get-blockchain-info",
+        "Get general information about the current state of the blockchain",
+        {},
+        async () => {
+            try {
+                const height = await config.getState().provider.getLatestBlockHeight(config.getState().network);
+                const fees = await config.getState().provider.getFeeRate(config.getState().network);
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Network: ${config.getState().network.id}\nBlock Height: ${height}\n\nRecommended Fees (sat/vB):\n- Fast: ${fees.fastestFee}\n- Half Hour: ${fees.halfHourFee}\n- Hour: ${fees.hourFee}`,
+                        },
+                    ],
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error fetching blockchain info: ${error.message}` }],
+                    isError: true,
+                };
+            }
+        }
+    );
 }
