@@ -11,9 +11,9 @@ cd midl-mcp
 pnpm install
 ```
 
-2. **Configure Claude Desktop** with your mnemonic (see [Configuration](#configuration) below)
+2. **Configure Claude Desktop** with your mnemonic (see [Configuration](#-configuration) below)
 
-3. **Get test BTC** from the [MIDL Faucet](https://faucet.midl.xyz) (for regtest)
+3. **Get test BTC** from the [MIDL Faucet](https://regtest.midl.xyz) (for regtest)
 
 4. **Start deploying:** Just ask Claude to deploy a contract!
 
@@ -76,35 +76,20 @@ Add this to your `claude_desktop_config.json`:
 }
 ```
 
-### Configuration Options
+### Configuration Variables
 
-#### Mode 1: MNEMONIC (Recommended - Full Capability)
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `MIDL_NETWORK` | Bitcoin network | `regtest`, `testnet`, `mainnet` |
-| `MIDL_MNEMONIC` | Your wallet mnemonic (12 or 24 words) | `word1 word2 word3 ...` |
-| `MIDL_RPC_URL` | Optional custom RPC endpoint | `https://mempool.space/testnet` |
+| Variable | Description | Example | Required |
+|----------|-------------|---------|----------|
+| `MIDL_NETWORK` | Bitcoin network | `regtest`, `testnet`, `mainnet` | Yes |
+| `MIDL_MNEMONIC` | Your wallet mnemonic (12 or 24 words) | `word1 word2 word3 ...` | Yes |
+| `MIDL_RPC_URL` | Optional custom RPC endpoint | `https://mempool.space/testnet` | No |
 
 **Features:**
 - ✅ Automatic transaction signing
 - ✅ Contract deployment
 - ✅ Contract interaction
 - ✅ BTC transfers
-
-#### Mode 2: ADDRESS (Read-Only)
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `MIDL_NETWORK` | Bitcoin network | `regtest`, `testnet` |
-| `MIDL_ACCOUNT_ADDRESS` | Your Bitcoin address | `bcrt1q...` or `tb1q...` |
-| `MIDL_ACCOUNT_PUBKEY` | Your public key (optional) | `02abc123...` |
-
-**Features:**
-- ✅ View balances
-- ✅ View transactions
-- ✅ Create unsigned PSBTs
-- ❌ Cannot sign or broadcast
+- ✅ Full read/write access
 
 > **🔐 Security Note:** Your mnemonic never leaves your machine. It's only used by the local MCP server to sign transactions. The MCP protocol ensures Claude cannot access environment variables directly.
 
@@ -113,7 +98,7 @@ Add this to your `claude_desktop_config.json`:
 1. **Replace `/path/to/midl-mcp`** with your actual installation path
 2. **Use your real mnemonic** from Xverse or another Bitcoin wallet
 3. **Restart Claude Desktop** completely (Cmd+Q on Mac, then reopen)
-4. **Get test funds** from https://faucet.midl.xyz (for regtest)
+4. **Get test funds** from [https://regtest.midl.xyz](https://regtest.midl.xyz) (for regtest)
 
 ---
 
@@ -151,7 +136,7 @@ What's my BTC balance?
 
 **Ask Claude:**
 ```
-How much would it cost to send 0.001 BTC to tb1q...?
+How much would it cost to send 0.001 BTC to bcrt1q...?
 ```
 
 See [FEATURE_TESTING_GUIDE.md](./FEATURE_TESTING_GUIDE.md) for 12 complete test scenarios.
@@ -215,14 +200,14 @@ cat FEATURE_TESTING_GUIDE.md
 ## 🌐 Network Resources
 
 ### Regtest (Testing)
-- **Faucet:** https://faucet.midl.xyz
-- **Bitcoin Explorer:** https://mempool.regtest.midl.xyz
-- **EVM Explorer:** https://blockscout.regtest.midl.xyz
-- **EVM RPC:** https://rpc.regtest.midl.xyz
+- **Faucet:** [https://regtest.midl.xyz](https://regtest.midl.xyz)
+- **Bitcoin Explorer:** [https://mempool.regtest.midl.xyz](https://mempool.regtest.midl.xyz)
+- **EVM Explorer:** [https://blockscout.regtest.midl.xyz](https://blockscout.regtest.midl.xyz)
+- **EVM RPC:** [https://rpc.regtest.midl.xyz](https://rpc.regtest.midl.xyz)
 
 ### Testnet
-- **Explorer:** https://mempool.space/testnet
-- **Faucet:** Use external testnet faucets
+- **Bitcoin Explorer:** [https://mempool.space/testnet](https://mempool.space/testnet)
+- **Faucet:** Use external Bitcoin testnet faucets
 
 ---
 
@@ -269,16 +254,16 @@ The server uses a **pre-connected wallet configuration model**:
 **Solution:** Check `MIDL_MNEMONIC` in Claude Desktop config
 
 ### "Insufficient funds"
-**Solution:** Get test BTC from https://faucet.midl.xyz
+**Solution:** Get test BTC from [https://regtest.midl.xyz](https://regtest.midl.xyz)
 
 ### Contract not appearing on explorer
 **Solution:** Wait 1-2 minutes for Bitcoin block confirmation
 
 ### "Method not found" on signature
-**Solution:** You're in ADDRESS mode - use `MIDL_MNEMONIC` instead
+**Solution:** Ensure you're using `MIDL_MNEMONIC` in your configuration
 
 ### Claude doesn't see the tools
-**Solution:** Restart Claude Desktop completely (Cmd+Q, then reopen)
+**Solution:** Restart Claude Desktop completely (Cmd+Q on Mac, then reopen)
 
 ---
 
@@ -301,11 +286,10 @@ MIT
 
 ## 🔗 Links
 
-- **GitHub:** https://github.com/Svector-anu/midl-mcp
-- **MIDL Website:** https://midl.xyz
-- **MIDL SDK:** https://js.midl.xyz
-- **Documentation:** https://js.midl.xyz/guides/deploy-contract
-- **Discord:** [Join MIDL Community](https://discord.gg/midl)
+- **GitHub:** [https://github.com/Svector-anu/midl-mcp](https://github.com/Svector-anu/midl-mcp)
+- **MIDL Website:** [https://midl.xyz](https://midl.xyz)
+- **MIDL SDK:** [https://js.midl.xyz](https://js.midl.xyz)
+- **Documentation:** [https://js.midl.xyz/guides/deploy-contract](https://js.midl.xyz/guides/deploy-contract)
 
 ---
 
