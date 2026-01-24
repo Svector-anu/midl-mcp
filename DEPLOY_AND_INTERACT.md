@@ -28,7 +28,7 @@ Add this to your `claude_desktop_config.json`:
 **Important:**
 - Use your wallet's mnemonic (12 or 24 words) from Xverse or another Bitcoin wallet
 - The mnemonic enables automatic transaction signing
-- For regtest, get test BTC from the [MIDL Faucet](https://faucet.midl.xyz)
+- For regtest, get test BTC from the [MIDL Faucet](https://faucet.regtest.midl.xyz)
 
 ### Restart Claude
 
