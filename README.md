@@ -11,7 +11,7 @@ cd midl-mcp
 pnpm install
 ```
 
-2. **Configure Claude Desktop** with your mnemonic (see [Configuration](#-configuration) below)
+2. **Configure Claude Desktop** with your mnemonic (see [Configuration](#configuration) below)
 
 3. **Get test BTC** from the [MIDL Faucet](https://faucet.regtest.midl.xyz/) (for regtest)
 
