@@ -1,101 +1,312 @@
 # MIDL MCP Server
 
-A production-ready Model Context Protocol (MCP) server for the [MIDL.js](https://js.midl.xyz) ecosystem. Enables LLMs to interact with Bitcoin and the MIDL Protocol in a safe, inspectable, and AI-native way.
+A production-ready Model Context Protocol (MCP) server for the [MIDL.js](https://js.midl.xyz) ecosystem. Enables LLMs to interact with Bitcoin and deploy smart contracts to MIDL L2 (Bitcoin-anchored EVM) in a safe, inspectable, and AI-native way.
 
-##  Overview
+## 🚀 Quick Start
 
-The MIDL MCP server provides a bridge between LLMs (like Claude) and the Bitcoin network. It follows strict design principles to ensure Bitcoin safety:
-- **No Private Keys**: LLMs never hold or access private keys.
-- **No-Hex Deployment**: Deploy raw Solidity code directly; the server handles compilation and dependencies (including OpenZeppelin).
-- **Human-in-the-Loop**: All signing and broadcasting actions require explicit human confirmation via MCP elicitation.
-- **Safety First**: Defaults to Testnet/Regtest and requires a pre-connected wallet model.
-- **Transparency**: All transactions are human-readable and decodable before execution.
-
-##  Features
-
-### Resources (Read-Only)
-- `midl://balance/{address}`: Current BTC balance.
-- `midl://utxos/{address}`: List of unspent transaction outputs.
-- `midl://fee-rates`: Current network recommended fees.
-- `midl://block-height`: Current Bitcoin block height.
-- `midl://network`: Network configuration details.
-- `midl://account`: Connected account information.
-- `midl://rune/{runeId}`: Rune metadata.
-- `midl://rune-balance/{address}/{runeId}`: Rune balance for an address.
-
-### Tools (Analytical & Actionable)
-- `estimate-btc-transfer-fee`: Calculate fees for a potential transfer.
-- `decode-psbt`: Convert base64 PSBTs into human-readable data.
-- `validate-bitcoin-address`: Check address validity for the current network.
-- `prepare-btc-transfer`: Prepare an unsigned PSBT (Safe, no action).
-- `prepare-contract-deploy`: Prepare a PSBT to anchor an EVM contract deployment.
-- `prepare-contract-call`: Prepare a PSBT to anchor a contract function call.
-- `deploy-contract-source`: Compile Solidity source code and prepare a deployment PSBT in one step (supports OpenZeppelin).
-- `request-psbt-signature`: Request a human signature for a PSBT (Gated).
-- `request-transaction-broadcast`: Request human confirmation to broadcast (Gated).
-
-See [DEPLOY_AND_INTERACT.md](./DEPLOY_AND_INTERACT.md) for a detailed walkthrough on smart contract operations.
-
-### Prompts
-- `explain-transaction`: Ask the LLM to explain a transaction in plain English.
-- `debug-transaction`: Seek help from the LLM to debug a transaction error.
-
-##  Installation
-
+1. **Install dependencies:**
 ```bash
-git clone https://github.com/svector-anu/midl-mcp.git
+git clone https://github.com/Svector-anu/midl-mcp.git
 cd midl-mcp
 pnpm install
 ```
 
-##  Integration with Claude Desktop
+2. **Configure Claude Desktop** with your mnemonic (see [Configuration](#configuration) below)
 
-To use this server in Claude Desktop, add it to your `claude_desktop_config.json`:
+3. **Get test BTC** from the [MIDL Faucet](https://faucet.midl.xyz) (for regtest)
 
-**MacOS**: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
+4. **Start deploying:** Just ask Claude to deploy a contract!
+
+📖 **Full deployment guide:** [DEPLOY_AND_INTERACT.md](./DEPLOY_AND_INTERACT.md)
+🧪 **Testing guide:** [FEATURE_TESTING_GUIDE.md](./FEATURE_TESTING_GUIDE.md)
+📝 **Real example:** [EXAMPLE_DEPLOYMENT.md](./EXAMPLE_DEPLOYMENT.md)
+
+---
+
+## ✨ Features
+
+### 🎯 Smart Contract Operations
+- **`deploy-contract-source`** - Compile & deploy Solidity (auto-resolves OpenZeppelin imports)
+- **`call-contract`** - Call functions on deployed contracts (handles BTC anchoring)
+- **`verify-contract`** - Verify source code on Blockscout explorer
+
+### 💰 Bitcoin Wallet Operations
+- **`get-wallet-balance`** - Check BTC balance
+- **`prepare-btc-transfer`** - Create unsigned PSBT for transfers
+- **`broadcast-transaction`** - Broadcast signed transactions
+- **`estimate-btc-transfer-fee`** - Calculate transaction costs
+
+### 🔍 Blockchain Information
+- **`get-address-transactions`** - View transaction history
+- **`get-blockchain-info`** - Network status and info
+- **`decode-psbt`** - Inspect PSBT details
+- **`validate-bitcoin-address`** - Validate address format
+
+### 📡 Resources (Read-Only)
+- `midl://balance/{address}` - Current BTC balance
+- `midl://utxos/{address}` - Unspent transaction outputs
+- `midl://fee-rates` - Current network fees
+- `midl://block-height` - Current block height
+- `midl://network` - Network configuration
+- `midl://account` - Connected account info
+
+---
+
+## 📋 Configuration
+
+### Claude Desktop Setup
+
+Add this to your `claude_desktop_config.json`:
+
+**MacOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
-    "midl": {
+    "midl-bitcoin": {
       "command": "npx",
-      "args": [
-        "-y",
-        "tsx",
-        "/Users/YOUR_USERNAME/Desktop/opensource/midl-mcp/src/index.ts"
-      ],
+      "args": ["-y", "tsx", "/path/to/midl-mcp/src/index.ts"],
       "env": {
-        "MIDL_NETWORK": "testnet",
-        "MIDL_ACCOUNT_ADDRESS": "YOUR_BTC_TESTNET_ADDRESS",
-        "MIDL_ACCOUNT_PUBKEY": "YOUR_BTC_PUBLIC_KEY",
-        "MIDL_RPC_URL": "https://mempool.space/testnet"
+        "MIDL_NETWORK": "regtest",
+        "MIDL_MNEMONIC": "your twelve word mnemonic phrase here"
       }
     }
   }
 }
 ```
 
-### Configuration Variables
+### Configuration Options
+
+#### Mode 1: MNEMONIC (Recommended - Full Capability)
+
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `MIDL_NETWORK` | Bitcoin network (testnet, regtest) | `testnet` |
-| `MIDL_ACCOUNT_ADDRESS` | Your public Bitcoin address | `tb1q...` |
-| `MIDL_ACCOUNT_PUBKEY` | Your public key (32 bytes hex) | `8f2a...` |
-| `MIDL_RPC_URL` | Optional custom Mempool.space API | `https://mempool.space/testnet` |
+| `MIDL_NETWORK` | Bitcoin network | `regtest`, `testnet`, `mainnet` |
+| `MIDL_MNEMONIC` | Your wallet mnemonic (12 or 24 words) | `word1 word2 word3 ...` |
+| `MIDL_RPC_URL` | Optional custom RPC endpoint | `https://mempool.space/testnet` |
 
-> [!IMPORTANT]
-> Replace the paths and values with your real local setup. The `env` section is required for the server to retrieve real wallet data. If `MIDL_ACCOUNT_ADDRESS` is missing, the server falls back to mock data.
+**Features:**
+- ✅ Automatic transaction signing
+- ✅ Contract deployment
+- ✅ Contract interaction
+- ✅ BTC transfers
 
-##  Testing
+#### Mode 2: ADDRESS (Read-Only)
 
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `MIDL_NETWORK` | Bitcoin network | `regtest`, `testnet` |
+| `MIDL_ACCOUNT_ADDRESS` | Your Bitcoin address | `bcrt1q...` or `tb1q...` |
+| `MIDL_ACCOUNT_PUBKEY` | Your public key (optional) | `02abc123...` |
+
+**Features:**
+- ✅ View balances
+- ✅ View transactions
+- ✅ Create unsigned PSBTs
+- ❌ Cannot sign or broadcast
+
+> **🔐 Security Note:** Your mnemonic never leaves your machine. It's only used by the local MCP server to sign transactions. The MCP protocol ensures Claude cannot access environment variables directly.
+
+### Important Setup Steps
+
+1. **Replace `/path/to/midl-mcp`** with your actual installation path
+2. **Use your real mnemonic** from Xverse or another Bitcoin wallet
+3. **Restart Claude Desktop** completely (Cmd+Q on Mac, then reopen)
+4. **Get test funds** from https://faucet.midl.xyz (for regtest)
+
+---
+
+## 🎯 Usage Examples
+
+### Deploy a Contract
+
+**Ask Claude:**
+```
+Deploy this contract:
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+contract Counter {
+    uint256 public count;
+    function increment() public { count++; }
+}
+```
+
+### Interact with Contract
+
+**Ask Claude:**
+```
+Call increment() on contract 0xYourContractAddress
+```
+
+### Check Balance
+
+**Ask Claude:**
+```
+What's my BTC balance?
+```
+
+### Estimate Fees
+
+**Ask Claude:**
+```
+How much would it cost to send 0.001 BTC to tb1q...?
+```
+
+See [FEATURE_TESTING_GUIDE.md](./FEATURE_TESTING_GUIDE.md) for 12 complete test scenarios.
+
+---
+
+## 🏗️ Architecture
+
+### MIDL L2 Deployment Flow
+
+MIDL is a Bitcoin-anchored EVM. Contract deployments require:
+
+1. **BTC Transaction** - Anchors the operation to Bitcoin
+2. **EVM Transaction** - Contains the contract bytecode
+3. **BIP322 Signature** - Links EVM tx to BTC txId
+4. **Combined Submission** - Both sent via `eth_sendBTCTransactions`
+
+The MCP server handles this complete flow automatically!
+
+### How It Works
+
+```
+┌─────────────┐
+│   Claude    │  "Deploy this contract"
+└──────┬──────┘
+       │
+       v
+┌─────────────────────┐
+│   MCP Server        │
+│  1. Compile Solidity │ (resolves @openzeppelin imports)
+│  2. Create BTC tx    │ (anchors to Bitcoin)
+│  3. Sign EVM tx      │ (with BIP322)
+│  4. Submit both      │ (eth_sendBTCTransactions)
+│  5. Verify contract  │ (on Blockscout)
+└──────┬──────────────┘
+       │
+       v
+┌─────────────────────┐
+│  MIDL L2 Network    │
+│  Bitcoin + EVM      │
+└─────────────────────┘
+```
+
+---
+
+## 🧪 Testing
+
+Run the test suite:
 ```bash
 pnpm test
 ```
 
-##  Security Architecture
+Manual testing with Claude Desktop:
+```bash
+# Follow the testing guide
+cat FEATURE_TESTING_GUIDE.md
+```
 
-The server enforces a **Pre-connected wallet configuration model**. This means the server instance is initialized with a read-only execution context where the wallet connection is established externally. This prevents the MCP server from having the capability to initiate sessions or manage sensitive keys.
+---
+
+## 🌐 Network Resources
+
+### Regtest (Testing)
+- **Faucet:** https://faucet.midl.xyz
+- **Bitcoin Explorer:** https://mempool.regtest.midl.xyz
+- **EVM Explorer:** https://blockscout.regtest.midl.xyz
+- **EVM RPC:** https://rpc.regtest.midl.xyz
+
+### Testnet
+- **Explorer:** https://mempool.space/testnet
+- **Faucet:** Use external testnet faucets
+
+---
+
+## 🔒 Security
+
+### Design Principles
+
+- **No Private Keys in Memory:** The server never stores private keys
+- **Mnemonic-based Signing:** Uses `@midl/node` for secure transaction signing
+- **Human-in-the-Loop:** All actions require explicit user confirmation via Claude
+- **Testnet First:** Defaults to testnet/regtest for safety
+- **Transparent Operations:** All transactions are human-readable
+
+### Security Architecture
+
+The server uses a **pre-connected wallet configuration model**:
+- Wallet connection established externally (via mnemonic)
+- Server operates in read-only execution context for queries
+- Write operations require explicit tool invocation
+- MCP protocol prevents direct environment variable access
+
+### Best Practices
+
+1. **Use testnet/regtest first** before mainnet
+2. **Review all transactions** before confirmation
+3. **Keep your mnemonic secure** and never share it
+4. **Use dedicated test wallets** for development
+5. **Verify contract addresses** on block explorers
+
+---
+
+## 📚 Documentation
+
+- **[Deployment Guide](./DEPLOY_AND_INTERACT.md)** - Complete walkthrough
+- **[Testing Guide](./FEATURE_TESTING_GUIDE.md)** - Test all 12 tools
+- **[Real Example](./EXAMPLE_DEPLOYMENT.md)** - Counter contract deployment
+- **[MIDL JS SDK](https://js.midl.xyz)** - Core SDK documentation
+
+---
+
+## 🐛 Troubleshooting
+
+### "No account connected"
+**Solution:** Check `MIDL_MNEMONIC` in Claude Desktop config
+
+### "Insufficient funds"
+**Solution:** Get test BTC from https://faucet.midl.xyz
+
+### Contract not appearing on explorer
+**Solution:** Wait 1-2 minutes for Bitcoin block confirmation
+
+### "Method not found" on signature
+**Solution:** You're in ADDRESS mode - use `MIDL_MNEMONIC` instead
+
+### Claude doesn't see the tools
+**Solution:** Restart Claude Desktop completely (Cmd+Q, then reopen)
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new features
+4. Submit a pull request
+
+---
 
 ## 📜 License
 
 MIT
+
+---
+
+## 🔗 Links
+
+- **GitHub:** https://github.com/Svector-anu/midl-mcp
+- **MIDL Website:** https://midl.xyz
+- **MIDL SDK:** https://js.midl.xyz
+- **Documentation:** https://js.midl.xyz/guides/deploy-contract
+- **Discord:** [Join MIDL Community](https://discord.gg/midl)
+
+---
+
+**Built with ❤️ for Bitcoin and the MIDL ecosystem**

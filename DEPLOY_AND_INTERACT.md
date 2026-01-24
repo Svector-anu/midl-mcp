@@ -210,4 +210,4 @@ For developers preferring standard tools:
 pnpm add -D hardhat @midl/hardhat-deploy hardhat-deploy @midl/executor
 ```
 
-See the [MIDL JS SDK docs](https://js.midl.xyz/midl/guides/deploy-contract) for full Hardhat integration.
+See the [MIDL JS SDK docs](https://js.midl.xyz/guides/deploy-contract) for full Hardhat integration.
