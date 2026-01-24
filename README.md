@@ -200,7 +200,7 @@ cat FEATURE_TESTING_GUIDE.md
 ##  Network Resources
 
 ### Regtest (Testing)
-- **Faucet:** [https://regtest.midl.xyz](https://regtest.midl.xyz)
+- **Faucet:** [https://regtest.midl.xyz](https://faucet.regtest.midl.xyz)
 - **Bitcoin Explorer:** [https://mempool.regtest.midl.xyz](https://mempool.regtest.midl.xyz)
 - **EVM Explorer:** [https://blockscout.regtest.midl.xyz](https://blockscout.regtest.midl.xyz)
 - **EVM RPC:** [https://rpc.regtest.midl.xyz](https://rpc.regtest.midl.xyz)
@@ -254,7 +254,7 @@ The server uses a **pre-connected wallet configuration model**:
 **Solution:** Check `MIDL_MNEMONIC` in Claude Desktop config
 
 ### "Insufficient funds"
-**Solution:** Get test BTC from [https://regtest.midl.xyz](https://regtest.midl.xyz)
+**Solution:** Get test BTC from [https://regtest.midl.xyz](https://faucet.regtest.midl.xyz)
 
 ### Contract not appearing on explorer
 **Solution:** Wait 1-2 minutes for Bitcoin block confirmation
