@@ -1,10 +1,25 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { transferBTC, broadcastTransaction, signPSBT, getDefaultAccount } from "@midl/core";
-import { addTxIntention, finalizeBTCTransaction, getEVMFromBitcoinNetwork, getEVMAddress } from "@midl/executor";
-import { createPublicClient, http, encodeDeployData, getContractAddress, encodeFunctionData } from "viem";
+import { transferBTC, broadcastTransaction, signPSBT, getDefaultAccount, SignMessageProtocol } from "@midl/core";
+import { addTxIntention, finalizeBTCTransaction, getEVMFromBitcoinNetwork, getEVMAddress, signIntention } from "@midl/executor";
+import { createPublicClient, createWalletClient, http, encodeDeployData, getContractAddress, encodeFunctionData, keccak256 } from "viem";
+import { waitForTransactionReceipt } from "viem/actions";
 import solc from "solc";
 import { MidlConfigWrapper } from "../config/midl-config.js";
+
+// Helper to call eth_sendBTCTransactions RPC method
+async function sendBTCTransactions(
+    client: any,
+    params: { serializedTransactions: `0x${string}`[]; btcTransaction: string }
+): Promise<`0x${string}`[]> {
+    return client.request(
+        {
+            method: "eth_sendBTCTransactions",
+            params: [params.serializedTransactions, params.btcTransaction],
+        },
+        { retryCount: 0 }
+    );
+}
 
 /**
  * Registers actionable tools on the McpServer.
@@ -182,6 +197,35 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
         }
     );
 
+    // Tool: broadcast-transaction (for standalone BTC transactions)
+    server.tool(
+        "broadcast-transaction",
+        "Broadcast a signed Bitcoin transaction to the network. Use this for BTC transfers. For contract deployments and calls, use deploy-contract-source or call-contract which handle the complete MIDL flow automatically.",
+        {
+            txHex: z.string().describe("The signed raw transaction hex string"),
+        },
+        async ({ txHex }) => {
+            try {
+                const txId = await broadcastTransaction(config, txHex);
+                const explorerUrl = config.getState().network?.explorerUrl || "";
+
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `✅ Transaction broadcasted successfully!\n\nTransaction ID: ${txId}\nExplorer: ${explorerUrl}${txId}`,
+                        },
+                    ],
+                };
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error broadcasting: ${error.message}` }],
+                    isError: true,
+                };
+            }
+        }
+    );
+
     // Tool: prepare-contract-deploy
     server.tool(
         "prepare-contract-deploy",
@@ -248,10 +292,10 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
         }
     );
 
-    // Tool: prepare-contract-call
+    // Tool: call-contract
     server.tool(
-        "prepare-contract-call",
-        "Prepare a Bitcoin PSBT to anchor a contract function call on MIDL-L2",
+        "call-contract",
+        "Call a function on a deployed smart contract on MIDL-L2. Creates a Bitcoin transaction that anchors the EVM call.",
         {
             contractAddress: z.string().describe("The EVM contract address (0x...)"),
             abi: z.array(z.any()).describe("The contract ABI"),
@@ -264,10 +308,6 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
             try {
                 const { network } = config.getState();
                 const evmChain = getEVMFromBitcoinNetwork(network as any);
-                const publicClient = createPublicClient({
-                    chain: evmChain as any,
-                    transport: http()
-                });
 
                 const data = encodeFunctionData({
                     abi,
@@ -280,25 +320,72 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
                         type: "btc",
                         to: contractAddress as `0x${string}`,
                         data,
-                        value: value ? BigInt(value) : undefined
+                        value: value ? BigInt(value) : undefined,
+                        chainId: evmChain.id,
                     }
                 } as any);
 
-                const btcTx = await finalizeBTCTransaction(config, [intention], publicClient as any, {
+                // Create a wallet client for signing and sending
+                const walletClient = createWalletClient({
+                    chain: evmChain as any,
+                    transport: http()
+                });
+
+                // 1. Finalize the BTC transaction
+                const btcTx = await finalizeBTCTransaction(config, [intention], walletClient as any, {
                     ...(feeRate ? { feeRate } : {})
                 });
+
+                const btcTxId = btcTx.tx?.id || "";
+                const btcTxHex = btcTx.tx?.hex || "";
+
+                // 2. Sign the EVM intention with the BTC txId
+                const signedEvmTx = await signIntention(
+                    config,
+                    walletClient as any,
+                    intention,
+                    [intention],
+                    {
+                        txId: btcTxId,
+                        protocol: SignMessageProtocol.Bip322,
+                    }
+                );
+
+                const evmTxHash = keccak256(signedEvmTx);
+
+                // 3. Send both transactions to the MIDL network
+                await sendBTCTransactions(walletClient as any, {
+                    serializedTransactions: [signedEvmTx],
+                    btcTransaction: btcTxHex,
+                });
+
+                // 4. Wait for confirmation
+                let receiptInfo = "";
+                try {
+                    const receipt = await waitForTransactionReceipt(walletClient as any, {
+                        hash: evmTxHash,
+                        timeout: 60_000,
+                    });
+                    receiptInfo = `\nConfirmed at block: ${receipt.blockNumber}`;
+                } catch (e) {
+                    receiptInfo = `\nNote: Transaction submitted, waiting for confirmation...`;
+                }
+
+                const blockscoutUrl = network.id === "regtest"
+                    ? `https://blockscout.regtest.midl.xyz/tx/${evmTxHash}`
+                    : `https://blockscout.midl.xyz/tx/${evmTxHash}`;
 
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Contract call PSBT prepared successfully.\n\nContract: ${contractAddress}\nFunction: ${functionName}\n\nPSBT (Base64):\n${btcTx.psbt}\n\nThis transaction anchors a contract call on the MIDL EVM chain (${network.id}).\nPlease use 'request-psbt-signature' and then 'request-transaction-broadcast' to complete the call.`,
+                            text: `✅ Contract call executed successfully!\n\nContract: ${contractAddress}\nFunction: ${functionName}\nBTC Transaction ID: ${btcTxId}\nEVM Transaction Hash: ${evmTxHash}${receiptInfo}\n\nView on Blockscout: ${blockscoutUrl}`,
                         },
                     ],
                 };
             } catch (error: any) {
                 return {
-                    content: [{ type: "text", text: `Error preparing contract call: ${error.message}` }],
+                    content: [{ type: "text", text: `Error calling contract: ${error.message}` }],
                     isError: true,
                 };
             }
@@ -348,14 +435,19 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
 
                 await resolveImports(sourceCode);
 
-                // 2. Compile
+                // 2. Compile with explicit settings for reproducibility
                 const input = {
                     language: 'Solidity',
                     sources,
                     settings: {
+                        optimizer: {
+                            enabled: false,
+                            runs: 200
+                        },
+                        evmVersion: "cancun",  // Use latest stable EVM version
                         outputSelection: {
                             '*': {
-                                '*': ['abi', 'evm.bytecode']
+                                '*': ['abi', 'evm.bytecode', 'metadata']
                             }
                         }
                     }
@@ -421,17 +513,6 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
                     bytecode: data
                 });
 
-                const intention = await addTxIntention(config, {
-                    evmTransaction: {
-                        type: "btc",
-                        data,
-                    }
-                } as any);
-
-                const btcTx = await finalizeBTCTransaction(config, [intention], publicClient as any, {
-                    ...(feeRate ? { feeRate } : {})
-                });
-
                 const evmAddress = getEVMAddress(getDefaultAccount(config) as any, network as any);
                 const nonce = await publicClient.getTransactionCount({ address: evmAddress as `0x${string}` });
                 const predictedAddress = getContractAddress({
@@ -439,11 +520,114 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
                     nonce: BigInt(nonce)
                 });
 
+                const intention = await addTxIntention(config, {
+                    evmTransaction: {
+                        type: "btc",
+                        data,
+                        chainId: evmChain.id,
+                    },
+                    meta: {
+                        contractName: targetName,
+                    }
+                } as any);
+
+                // Create a wallet client for signing EVM transactions
+                const walletClient = createWalletClient({
+                    chain: evmChain as any,
+                    transport: http()
+                });
+
+                // 1. Finalize the BTC transaction (signs the PSBT)
+                const btcTx = await finalizeBTCTransaction(config, [intention], walletClient as any, {
+                    ...(feeRate ? { feeRate } : {})
+                });
+
+                const btcTxId = btcTx.tx?.id || "";
+                const btcTxHex = btcTx.tx?.hex || "";
+
+                // 2. Sign the EVM intention with the BTC txId (BIP322)
+                const signedEvmTx = await signIntention(
+                    config,
+                    walletClient as any,
+                    intention,
+                    [intention],
+                    {
+                        txId: btcTxId,
+                        protocol: SignMessageProtocol.Bip322,
+                    }
+                );
+
+                const evmTxHash = keccak256(signedEvmTx);
+
+                // 3. Send both BTC tx and signed EVM tx to the MIDL network
+                await sendBTCTransactions(walletClient as any, {
+                    serializedTransactions: [signedEvmTx],
+                    btcTransaction: btcTxHex,
+                });
+
+                // 4. Wait for EVM transaction receipt (optional, with timeout)
+                let receiptInfo = "";
+                try {
+                    const receipt = await waitForTransactionReceipt(walletClient as any, {
+                        hash: evmTxHash,
+                        timeout: 60_000, // 60 second timeout
+                    });
+                    receiptInfo = `\nContract deployed at block: ${receipt.blockNumber}`;
+                } catch (e) {
+                    receiptInfo = `\nNote: Transaction submitted, waiting for confirmation...`;
+                }
+
+                const blockscoutBaseUrl = network.id === "regtest"
+                    ? "https://blockscout.regtest.midl.xyz"
+                    : "https://blockscout.midl.xyz";
+                const blockscoutUrl = `${blockscoutBaseUrl}/address/${predictedAddress}`;
+
+                // 5. Auto-verify contract on Blockscout
+                let verificationInfo = "";
+                try {
+                    // Flatten source code for verification (combine all sources)
+                    let flattenedSource = sourceCode;
+                    for (const [path, source] of Object.entries(sources)) {
+                        if (path !== "Contract.sol") {
+                            flattenedSource = `// File: ${path}\n${source.content}\n\n${flattenedSource}`;
+                        }
+                    }
+
+                    const compilerVersion = `v${solc.version().replace(".Emscripten.clang", "")}`;
+
+                    const verifyResponse = await fetch(
+                        `${blockscoutBaseUrl}/api/v2/smart-contracts/${predictedAddress}/verification/via/flattened-code`,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                compiler_version: compilerVersion,
+                                source_code: flattenedSource,
+                                is_optimization_enabled: false,
+                                optimization_runs: 200,
+                                contract_name: targetName,
+                                evm_version: "cancun",
+                                autodetect_constructor_args: true,
+                                license_type: "mit"
+                            })
+                        }
+                    );
+
+                    if (verifyResponse.ok) {
+                        verificationInfo = "\n✅ Contract verification submitted to Blockscout";
+                    } else {
+                        const errorText = await verifyResponse.text();
+                        verificationInfo = `\n⚠️ Verification failed: ${errorText.slice(0, 100)}`;
+                    }
+                } catch (e: any) {
+                    verificationInfo = `\n⚠️ Auto-verification skipped: ${e.message}`;
+                }
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Contract compiled and PSBT prepared successfully.\n\nContract Name: ${contractName}\nPredicted Address: ${predictedAddress}\n\nPSBT (Base64):\n${btcTx.psbt}\n\nThis will deploy your Solidity source code to the MIDL chain. Please use 'request-psbt-signature' and 'request-transaction-broadcast' to complete the deployment.`,
+                            text: `✅ Contract deployed successfully!\n\nContract Name: ${targetName}\nContract Address: ${predictedAddress}\nBTC Transaction ID: ${btcTxId}\nEVM Transaction Hash: ${evmTxHash}${receiptInfo}${verificationInfo}\n\nView on Blockscout: ${blockscoutUrl}\nView BTC tx: ${network.explorerUrl || ""}${btcTxId}`,
                         },
                     ],
                 };
@@ -451,6 +635,118 @@ export function registerActionableTools(server: McpServer, midl: MidlConfigWrapp
             } catch (error: any) {
                 return {
                     content: [{ type: "text", text: `Error in deploy-contract-source: ${error.message}` }],
+                    isError: true,
+                };
+            }
+        }
+    );
+
+    // Tool: verify-contract
+    server.tool(
+        "verify-contract",
+        "Verify a deployed smart contract on Blockscout. Submit the source code to enable contract interaction via the explorer.",
+        {
+            contractAddress: z.string().describe("The deployed contract address (0x...)"),
+            sourceCode: z.string().describe("The Solidity source code"),
+            contractName: z.string().describe("The contract name as it appears in the source"),
+            compilerVersion: z.string().optional().describe("Compiler version (e.g., 'v0.8.28+commit.7893614a'). If omitted, uses solc bundled version."),
+            optimizationEnabled: z.boolean().optional().describe("Whether optimization was enabled during compilation"),
+            optimizationRuns: z.number().int().optional().describe("Number of optimization runs (default: 200)"),
+            constructorArgs: z.string().optional().describe("ABI-encoded constructor arguments (hex string without 0x prefix)"),
+            licenseType: z.string().optional().describe("License type: none, unlicense, mit, gnu_gpl_v2, gnu_gpl_v3, apache_2_0, etc."),
+        },
+        async ({ contractAddress, sourceCode, contractName, compilerVersion, optimizationEnabled, optimizationRuns, constructorArgs, licenseType }) => {
+            try {
+                const { network } = config.getState();
+                const blockscoutBaseUrl = network.id === "regtest"
+                    ? "https://blockscout.regtest.midl.xyz"
+                    : "https://blockscout.midl.xyz";
+
+                // Resolve imports for flattening
+                const sources: Record<string, { content: string }> = {
+                    "Contract.sol": { content: sourceCode }
+                };
+
+                const resolveImports = async (content: string) => {
+                    const importRegex = /import\s+["']([^"']+)["']/g;
+                    let match;
+                    while ((match = importRegex.exec(content)) !== null) {
+                        const importPath = match[1];
+                        if (importPath && !sources[importPath]) {
+                            let url = "";
+                            if (importPath.startsWith("@openzeppelin/")) {
+                                url = `https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/master/${importPath.replace("@openzeppelin/", "")}`;
+                            } else {
+                                continue;
+                            }
+
+                            const res = await fetch(url);
+                            if (res.ok) {
+                                const importedSource = await res.text();
+                                sources[importPath] = { content: importedSource };
+                                await resolveImports(importedSource);
+                            }
+                        }
+                    }
+                };
+
+                await resolveImports(sourceCode);
+
+                // Flatten source code
+                let flattenedSource = sourceCode;
+                for (const [path, source] of Object.entries(sources)) {
+                    if (path !== "Contract.sol") {
+                        flattenedSource = `// File: ${path}\n${source.content}\n\n${flattenedSource}`;
+                    }
+                }
+
+                const version = compilerVersion || `v${solc.version().replace(".Emscripten.clang", "")}`;
+
+                const verifyBody: Record<string, any> = {
+                    compiler_version: version,
+                    source_code: flattenedSource,
+                    is_optimization_enabled: optimizationEnabled ?? false,
+                    optimization_runs: optimizationRuns ?? 200,
+                    contract_name: contractName,
+                    license_type: licenseType || "mit",
+                };
+
+                if (constructorArgs) {
+                    verifyBody.constructor_args = constructorArgs;
+                    verifyBody.autodetect_constructor_args = false;
+                } else {
+                    verifyBody.autodetect_constructor_args = true;
+                }
+
+                const response = await fetch(
+                    `${blockscoutBaseUrl}/api/v2/smart-contracts/${contractAddress}/verification/via/flattened-code`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(verifyBody)
+                    }
+                );
+
+                if (response.ok) {
+                    const result = await response.json();
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `✅ Contract verified successfully!\n\nContract: ${contractAddress}\nName: ${contractName}\nCompiler: ${version}\n\nView verified contract: ${blockscoutBaseUrl}/address/${contractAddress}?tab=contract`,
+                            },
+                        ],
+                    };
+                } else {
+                    const errorText = await response.text();
+                    return {
+                        content: [{ type: "text", text: `Verification failed: ${errorText}` }],
+                        isError: true,
+                    };
+                }
+            } catch (error: any) {
+                return {
+                    content: [{ type: "text", text: `Error verifying contract: ${error.message}` }],
                     isError: true,
                 };
             }

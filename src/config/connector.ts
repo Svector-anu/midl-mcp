@@ -27,7 +27,9 @@ export class ServerConnector implements Connector {
         throw new Error("signMessage not supported by server-side connector. Use elicitation tools.");
     }
 
-    async signPSBT(): Promise<any> {
-        throw new Error("signPSBT not supported by server-side connector directly. Use actionable tools.");
+    async signPSBT(params: { psbt: string; signInputs: Record<string, number[]> }): Promise<{ psbt: string }> {
+        // For MCP server: return the UNSIGNED PSBT for user to sign externally
+        // This allows the SDK flow to complete while keeping the PSBT unsigned
+        return { psbt: params.psbt };
     }
 }
