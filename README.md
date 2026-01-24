@@ -13,7 +13,7 @@ pnpm install
 
 2. **Configure Claude Desktop** with your mnemonic (see [Configuration](#-configuration) below)
 
-3. **Get test BTC** from the [MIDL Faucet](https://regtest.midl.xyz) (for regtest)
+3. **Get test BTC** from the [MIDL Faucet](https://faucet.regtest.midl.xyz/) (for regtest)
 
 4. **Start deploying:** Just ask Claude to deploy a contract!
 
