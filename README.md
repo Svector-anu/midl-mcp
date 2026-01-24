@@ -2,7 +2,7 @@
 
 A production-ready Model Context Protocol (MCP) server for the [MIDL.js](https://js.midl.xyz) ecosystem. Enables LLMs to interact with Bitcoin and deploy smart contracts to MIDL L2 (Bitcoin-anchored EVM) in a safe, inspectable, and AI-native way.
 
-## 🚀 Quick Start
+##  Quick Start
 
 1. **Install dependencies:**
 ```bash
@@ -17,32 +17,32 @@ pnpm install
 
 4. **Start deploying:** Just ask Claude to deploy a contract!
 
-📖 **Full deployment guide:** [DEPLOY_AND_INTERACT.md](./DEPLOY_AND_INTERACT.md)
-🧪 **Testing guide:** [FEATURE_TESTING_GUIDE.md](./FEATURE_TESTING_GUIDE.md)
-📝 **Real example:** [EXAMPLE_DEPLOYMENT.md](./EXAMPLE_DEPLOYMENT.md)
+ **Full deployment guide:** [DEPLOY_AND_INTERACT.md](./DEPLOY_AND_INTERACT.md)
+ **Testing guide:** [FEATURE_TESTING_GUIDE.md](./FEATURE_TESTING_GUIDE.md)
+ **Real example:** [EXAMPLE_DEPLOYMENT.md](./EXAMPLE_DEPLOYMENT.md)
 
 ---
 
-## ✨ Features
+##  Features
 
-### 🎯 Smart Contract Operations
+###  Smart Contract Operations
 - **`deploy-contract-source`** - Compile & deploy Solidity (auto-resolves OpenZeppelin imports)
 - **`call-contract`** - Call functions on deployed contracts (handles BTC anchoring)
 - **`verify-contract`** - Verify source code on Blockscout explorer
 
-### 💰 Bitcoin Wallet Operations
+###  Bitcoin Wallet Operations
 - **`get-wallet-balance`** - Check BTC balance
 - **`prepare-btc-transfer`** - Create unsigned PSBT for transfers
 - **`broadcast-transaction`** - Broadcast signed transactions
 - **`estimate-btc-transfer-fee`** - Calculate transaction costs
 
-### 🔍 Blockchain Information
+###  Blockchain Information
 - **`get-address-transactions`** - View transaction history
 - **`get-blockchain-info`** - Network status and info
 - **`decode-psbt`** - Inspect PSBT details
 - **`validate-bitcoin-address`** - Validate address format
 
-### 📡 Resources (Read-Only)
+###  Resources (Read-Only)
 - `midl://balance/{address}` - Current BTC balance
 - `midl://utxos/{address}` - Unspent transaction outputs
 - `midl://fee-rates` - Current network fees
@@ -52,7 +52,7 @@ pnpm install
 
 ---
 
-## 📋 Configuration
+##  Configuration
 
 ### Claude Desktop Setup
 
@@ -85,13 +85,13 @@ Add this to your `claude_desktop_config.json`:
 | `MIDL_RPC_URL` | Optional custom RPC endpoint | `https://mempool.space/testnet` | No |
 
 **Features:**
-- ✅ Automatic transaction signing
-- ✅ Contract deployment
-- ✅ Contract interaction
-- ✅ BTC transfers
-- ✅ Full read/write access
+-  Automatic transaction signing
+-  Contract deployment
+-  Contract interaction
+-  BTC transfers
+-  Full read/write access
 
-> **🔐 Security Note:** Your mnemonic never leaves your machine. It's only used by the local MCP server to sign transactions. The MCP protocol ensures Claude cannot access environment variables directly.
+> ** Security Note:** Your mnemonic never leaves your machine. It's only used by the local MCP server to sign transactions. The MCP protocol ensures Claude cannot access environment variables directly.
 
 ### Important Setup Steps
 
@@ -102,7 +102,7 @@ Add this to your `claude_desktop_config.json`:
 
 ---
 
-## 🎯 Usage Examples
+##  Usage Examples
 
 ### Deploy a Contract
 
@@ -143,7 +143,7 @@ See [FEATURE_TESTING_GUIDE.md](./FEATURE_TESTING_GUIDE.md) for 12 complete test 
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ### MIDL L2 Deployment Flow
 
@@ -182,7 +182,7 @@ The MCP server handles this complete flow automatically!
 
 ---
 
-## 🧪 Testing
+##  Testing
 
 Run the test suite:
 ```bash
@@ -197,7 +197,7 @@ cat FEATURE_TESTING_GUIDE.md
 
 ---
 
-## 🌐 Network Resources
+##  Network Resources
 
 ### Regtest (Testing)
 - **Faucet:** [https://regtest.midl.xyz](https://regtest.midl.xyz)
@@ -211,7 +211,7 @@ cat FEATURE_TESTING_GUIDE.md
 
 ---
 
-## 🔒 Security
+##  Security
 
 ### Design Principles
 
@@ -239,7 +239,7 @@ The server uses a **pre-connected wallet configuration model**:
 
 ---
 
-## 📚 Documentation
+##  Documentation
 
 - **[Deployment Guide](./DEPLOY_AND_INTERACT.md)** - Complete walkthrough
 - **[Testing Guide](./FEATURE_TESTING_GUIDE.md)** - Test all 12 tools
@@ -248,7 +248,7 @@ The server uses a **pre-connected wallet configuration model**:
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### "No account connected"
 **Solution:** Check `MIDL_MNEMONIC` in Claude Desktop config
@@ -267,7 +267,7 @@ The server uses a **pre-connected wallet configuration model**:
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions welcome! Please:
 
@@ -278,13 +278,13 @@ Contributions welcome! Please:
 
 ---
 
-## 📜 License
+##  License
 
 MIT
 
 ---
 
-## 🔗 Links
+##  Links
 
 - **GitHub:** [https://github.com/Svector-anu/midl-mcp](https://github.com/Svector-anu/midl-mcp)
 - **MIDL Website:** [https://midl.xyz](https://midl.xyz)
@@ -293,4 +293,4 @@ MIT
 
 ---
 
-**Built with ❤️ for Bitcoin and the MIDL ecosystem**
+**Built for midl.xyz **
