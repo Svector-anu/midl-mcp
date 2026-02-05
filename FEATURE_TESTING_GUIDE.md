@@ -55,7 +55,6 @@ Complete guide to testing all MCP server features on **MIDL Staging Network**.
 | **PSBT operations** | <1 second |
 | **Verification (Hardhat)** | ~30 seconds |
 
-⚠️ **Note:** Staging network is slower than regtest. Write operations take 10-15 minutes!
 
 ---
 
