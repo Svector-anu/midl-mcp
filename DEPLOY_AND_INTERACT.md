@@ -17,7 +17,7 @@ Add this to your `claude_desktop_config.json`:
       "command": "npx",
       "args": ["-y", "tsx", "/path/to/midl-mcp/src/index.ts"],
       "env": {
-        "MIDL_NETWORK": "regtest",
+        "MIDL_NETWORK": "staging",
         "MIDL_MNEMONIC": "your twelve word mnemonic phrase here"
       }
     }
@@ -28,7 +28,7 @@ Add this to your `claude_desktop_config.json`:
 **Important:**
 - Use your wallet's mnemonic (12 or 24 words) from Xverse or another Bitcoin wallet
 - The mnemonic enables automatic transaction signing
-- For regtest, get test BTC from the [MIDL Faucet](https://faucet.regtest.midl.xyz)
+- For staging/regtest, get test BTC from the [MIDL Faucet](https://faucet.midl.xyz)
 
 ### Restart Claude
 
@@ -149,7 +149,16 @@ The `verify-contract` tool submits source code to Blockscout's verification API.
 
 ## Network Resources
 
-### Regtest (Testing)
+### Staging (Pre-Production Testing)
+
+| Resource | URL |
+|----------|-----|
+| Faucet | https://faucet.midl.xyz |
+| Bitcoin Explorer | https://mempool.staging.midl.xyz |
+| EVM Explorer | https://blockscout.staging.midl.xyz |
+| EVM RPC | https://rpc.staging.midl.xyz |
+
+### Regtest (Local Development)
 
 | Resource | URL |
 |----------|-----|

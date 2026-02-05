@@ -8,6 +8,16 @@ test-*.js
 .env
 .env.local
 .env.*.local
+*.key
+*.pem
+*_rsa
+*_rsa.pub
+secrets/
+.secrets/
+
+# Config files with potential secrets
+claude_desktop_config.json
+**/claude_desktop_config.json
 
 # Node modules
 node_modules/
@@ -28,3 +38,10 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Claude Code project files (local only)
+.claude/
+
+# External dependencies (tracked separately)
+mcp-typescript-sdk/
+midl-js/

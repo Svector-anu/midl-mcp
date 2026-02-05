@@ -15,15 +15,22 @@ export async function createMidlConfigFromEnv() {
     const address = process.env.MIDL_ACCOUNT_ADDRESS;
     let publicKey = process.env.MIDL_ACCOUNT_PUBKEY || "";
 
+    // Staging uses regtest network with staging explorers
+    const isStaging = networkId === "staging";
+    const sdkNetworkId = isStaging ? "regtest" : networkId;
+
     // Determine the base bitcoin network name used by midl-js
     let bitcoinNetwork: "bitcoin" | "testnet" | "regtest" = "testnet";
     if (networkId === "mainnet") bitcoinNetwork = "bitcoin";
-    else if (networkId === "regtest") bitcoinNetwork = "regtest";
+    else if (networkId === "regtest" || isStaging) bitcoinNetwork = "regtest";
 
     // Determine the explorer URL
     let explorerUrl = `https://mempool.space/${networkId === "mainnet" ? "" : networkId + "/"}tx/`;
     if (networkId === "regtest") {
         explorerUrl = "https://mempool.regtest.midl.xyz/tx/";
+    } else if (networkId === "staging") {
+        // Staging uses regtest network but staging explorers
+        explorerUrl = "https://mempool.staging.midl.xyz/tx/";
     } else if (networkId === "testnet4") {
         explorerUrl = "https://mempool.space/testnet4/tx/";
     } else if (networkId === "signet") {
@@ -32,7 +39,7 @@ export async function createMidlConfigFromEnv() {
 
     const networks: any[] = [
         {
-            id: networkId,
+            id: sdkNetworkId,  // Use "regtest" for SDK, not "staging"
             network: bitcoinNetwork,
             explorerUrl
         }
@@ -40,7 +47,19 @@ export async function createMidlConfigFromEnv() {
 
     // Custom RPC URL support
     const rpcUrl = process.env.MIDL_RPC_URL;
-    const rpcMap = rpcUrl ? { [networkId]: rpcUrl } : undefined;
+    let rpcMap = rpcUrl ? { [sdkNetworkId]: rpcUrl } : undefined;
+
+    // For staging: use staging mempool for Bitcoin data queries
+    if (isStaging && !rpcUrl) {
+        // Use staging mempool API for UTXO/balance queries
+        rpcMap = { regtest: "https://mempool.staging.midl.xyz" };
+    }
+
+    // Runes provider configuration
+    let runesProviderConfig: any = {};
+    if (isStaging) {
+        runesProviderConfig = { regtest: "https://runes.staging.midl.xyz" };
+    }
 
     // MODE 1: Mnemonic-based signing (full capability)
     if (mnemonic) {
@@ -55,7 +74,7 @@ export async function createMidlConfigFromEnv() {
             networks,
             connectors: [connector],
             provider: new MempoolSpaceProvider(rpcMap as any),
-            runesProvider: new MaestroSymphonyProvider(),
+            runesProvider: new MaestroSymphonyProvider(runesProviderConfig),
             defaultPurpose: AddressPurpose.Payment  // Use Payment account (where funds are)
         });
 
@@ -87,7 +106,7 @@ export async function createMidlConfigFromEnv() {
     if (!publicKey || publicKey === "NOT_SET" || publicKey.includes("...")) {
         try {
             console.error(`Attempting to recover public key for ${address}...`);
-            const baseUrl = networkId === "regtest" ? "https://mempool.regtest.midl.xyz" : `https://mempool.space/${networkId === "mainnet" ? "" : networkId + "/"}`;
+            const baseUrl = networkId === "regtest" ? "https://mempool.regtest.midl.xyz" : networkId === "staging" ? "https://mempool.staging.midl.xyz" : `https://mempool.space/${networkId === "mainnet" ? "" : networkId + "/"}`;
             const res = await fetch(`${baseUrl}/api/address/${address}/txs`);
             if (res.ok) {
                 const txs = await res.json() as any[];
@@ -115,7 +134,7 @@ export async function createMidlConfigFromEnv() {
             create: () => connector
         } as any],
         provider: new MempoolSpaceProvider(rpcMap as any),
-        runesProvider: new MaestroSymphonyProvider(),
+        runesProvider: new MaestroSymphonyProvider(runesProviderConfig),
         defaultPurpose: AddressPurpose.Ordinals
     });
 
