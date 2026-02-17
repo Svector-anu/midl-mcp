@@ -16,10 +16,11 @@
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",
-    "@midl/core": "3.0.0-next.29",
-    "@midl/executor": "3.0.0-next.29",
+    "@midl/core": "^3.0.1",
+    "@midl/executor": "^3.0.1",
     "@midl/node": "3.0.1",
     "@midl/viem": "2.21.39",
+    "viem": "npm:@midl/viem@2.21.39",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "bitcoinjs-lib": "^7.0.1",
     "bitcoinselect": "^1.0.0",
